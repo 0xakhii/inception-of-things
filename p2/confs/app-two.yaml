@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-two-html
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head><title>App 2</title></head>
+    <body>
+      <h1>Hello from app2.</h1>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-two
+  labels:
+    app: app-two
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: app-two
+  template:
+    metadata:
+      labels:
+        app: app-two
+    spec:
+      containers:
+        - name: app-two
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: html
+              mountPath: /usr/share/nginx/html
+      volumes:
+        - name: html
+          configMap:
+            name: app-two-html
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-two-svc
+spec:
+  selector:
+    app: app-two
+  ports:
+    - port: 80
+      targetPort: 80

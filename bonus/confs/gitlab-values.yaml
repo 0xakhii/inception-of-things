@@ -1,0 +1,97 @@
+# ──────────────────────────────────────────────────
+# Minimal GitLab Helm values for local K3d cluster
+# Disables everything non-essential to save resources
+# ──────────────────────────────────────────────────
+
+global:
+  hosts:
+    domain: gitlab.local
+    https: false
+  ingress:
+    configureCertmanager: false
+    class: traefik
+    tls:
+      enabled: false
+  shell:
+    port: 32022
+  edition: ce
+  kas:
+    enabled: false
+  pages:
+    enabled: false
+  appConfig:
+    enableUsagePing: false
+
+# ── Disable heavyweight sub-charts ──
+
+certmanager:
+  install: false
+
+nginx-ingress:
+  enabled: false
+
+prometheus:
+  install: false
+
+gitlab-runner:
+  install: false
+
+registry:
+  enabled: false
+
+# ── Core GitLab components — minimal resources ──
+
+gitlab:
+  webservice:
+    minReplicas: 1
+    maxReplicas: 1
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        memory: 2.5Gi
+  sidekiq:
+    minReplicas: 1
+    maxReplicas: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 512Mi
+      limits:
+        memory: 1.5Gi
+  gitaly:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        memory: 1Gi
+  gitlab-shell:
+    minReplicas: 1
+    maxReplicas: 1
+  kas:
+    enabled: false
+  toolbox:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+# ── Bundled PostgreSQL & Redis — keep but minimize ──
+
+postgresql:
+  metrics:
+    enabled: false
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+redis:
+  metrics:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi

@@ -1,0 +1,66 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# ──────────────────────────────────────────────
+# Inception-of-Things — Part 1: K3s and Vagrant
+# ──────────────────────────────────────────────
+
+SERVER_IP   = "192.168.56.110"
+WORKER_IP   = "192.168.56.111"
+K3S_TOKEN   = "iot-secret-token-42"
+BOX_IMAGE   = "debian/bookworm64"   # Debian 12 (latest stable, lighter than Ubuntu)
+
+Vagrant.configure("2") do |config|
+
+  # ── Common settings ──
+  config.vm.box = BOX_IMAGE
+
+  # Disable default synced folder (not needed)
+  config.vm.synced_folder ".", "/vagrant", disabled: false
+
+  # ─────────────────────────────────────────
+  # Server node — K3s in controller mode
+  # ─────────────────────────────────────────
+  config.vm.define "ojamalS" do |server|
+    server.vm.hostname = "ojamalS"
+    server.vm.network "private_network", ip: SERVER_IP
+
+    server.vm.provider "virtualbox" do |v|
+      v.customize ["modifyvm", :id, "--name", "ojamalS"]
+      v.memory = 1024
+      v.cpus   = 1
+    end
+
+    # Provision: install K3s server
+    server.vm.provision "shell",
+      path: "scripts/server.sh",
+      env: {
+        "K3S_TOKEN"  => K3S_TOKEN,
+        "SERVER_IP"  => SERVER_IP,
+      }
+  end
+
+  # ─────────────────────────────────────────
+  # Worker node — K3s in agent mode
+  # ─────────────────────────────────────────
+  config.vm.define "ojamalSW" do |worker|
+    worker.vm.hostname = "ojamalSW"
+    worker.vm.network "private_network", ip: WORKER_IP
+
+    worker.vm.provider "virtualbox" do |v|
+      v.customize ["modifyvm", :id, "--name", "ojamalSW"]
+      v.memory = 1024
+      v.cpus   = 1
+    end
+
+    # Provision: install K3s agent and join the server
+    worker.vm.provision "shell",
+      path: "scripts/worker.sh",
+      env: {
+        "K3S_TOKEN"  => K3S_TOKEN,
+        "SERVER_IP"  => SERVER_IP,
+        "WORKER_IP"  => WORKER_IP,
+      }
+  end
+
+end

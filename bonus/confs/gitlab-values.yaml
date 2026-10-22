@@ -4,6 +4,22 @@
 # ──────────────────────────────────────────────────
 
 global:
+  psql:
+    host: postgres.database.svc.cluster.local
+    port: 5432
+    database: gitlabhq_production
+    username: gitlab
+    password:
+      secret: gitlab-postgresql-password
+      key: password
+
+  redis:
+    host: redis.cache.svc.cluster.local
+    port: 6379
+    auth:
+      enabled: true
+      secret: gitlab-redis-password
+      key: redis-password
   hosts:
     domain: gitlab.local
     https: false
@@ -21,11 +37,20 @@ global:
     enabled: false
   appConfig:
     enableUsagePing: false
+    object_store:
+      enabled: true
+      proxy_download: true
+      connection:
+        secret: gitlab-object-storage
+        key: connection
 
 # ── Disable heavyweight sub-charts ──
 
 certmanager:
-  install: false
+  enabled: false
+
+certmanager-issuer:
+  email: info@gitlab.com
 
 nginx-ingress:
   enabled: false
@@ -95,3 +120,10 @@ redis:
     requests:
       cpu: 50m
       memory: 64Mi
+
+# Disable bundled PostgreSQL and Redis when using external services.
+postgresql:
+  install: false
+
+redis:
+  install: false

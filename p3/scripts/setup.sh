@@ -78,7 +78,7 @@ argocd login localhost:8443 \
 
 # ── Create the Argo CD Application ──
 echo "[P3] Creating Argo CD application..."
-kubectl apply -f /home/akhi/Desktop/inception-of-things/p3/confs/argocd-app.yaml
+kubectl apply -f ${HOME}/inception-of-things/p3/confs/argocd-app.yaml
 
 # ── Wait for the app to sync ──
 echo "[P3] Waiting for application to sync..."

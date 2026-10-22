@@ -108,19 +108,19 @@ helm repo update
 helm upgrade --install gitlab gitlab/gitlab \
   --namespace "${GITLAB_NS}" \
   -f "${CONFS_DIR}/gitlab-values.yaml" \
-  --timeout 600s
+  --timeout 300s
 
 echo "[BONUS] Waiting for GitLab webservice to be ready..."
 # The webservice pod can take a while — retry with a generous timeout
-for i in $(seq 1 60); do
+for i in $(seq 1 10); do
   READY=$(kubectl get pods -n "${GITLAB_NS}" -l app=webservice \
     -o jsonpath='{.items[*].status.conditions[?(@.type=="Ready")].status}' 2>/dev/null || echo "")
   if [ "$READY" = "True" ]; then
     echo "[BONUS] GitLab webservice is ready!"
     break
   fi
-  echo "[BONUS]   Waiting for webservice... (${i}/60, checking every 10s)"
-  sleep 10
+  echo "[BONUS]   Waiting for webservice... (${i}/10, checking every 2s)"
+  sleep 2
 done
 
 echo "[BONUS] Waiting for GitLab toolbox to be ready..."
@@ -134,6 +134,21 @@ echo ""
 echo "============================================="
 echo " [BONUS] Step 5/7 — GitLab credentials"
 echo "============================================="
+
+GITLAB_REDIS_PASSWORD="${GITLAB_REDIS_PASSWORD:-$(openssl rand -hex 24)}"
+GITLAB_POSTGRES_PASSWORD="${GITLAB_POSTGRES_PASSWORD:-$(openssl rand -hex 24)}"
+
+
+kubectl create secret generic gitlab-redis-password \
+  -n "${GITLAB_NS}" \
+  --from-literal=redis-password="${GITLAB_REDIS_PASSWORD}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+kubectl create secret generic gitlab-postgresql-password \
+  -n "${GITLAB_NS}" \
+  --from-literal=password="${GITLAB_POSTGRES_PASSWORD}" \
+  --dry-run=client -o yaml | kubectl apply -f -
+
 
 GITLAB_ROOT_PASSWORD=$(kubectl get secret gitlab-gitlab-initial-root-password \
   -n "${GITLAB_NS}" -o jsonpath="{.data.password}" | base64 -d)
@@ -154,7 +169,7 @@ GITLAB_TOKEN=$(kubectl exec -n "${GITLAB_NS}" deploy/gitlab-toolbox -- \
       expires_at: 365.days.from_now
     )
     print token.token
-  " 2>/dev/null)
+  " ) #2>/dev/null)
 
 if [ -z "${GITLAB_TOKEN}" ]; then
   echo "[BONUS] ERROR: Failed to create GitLab token. Retrying in 30s..."

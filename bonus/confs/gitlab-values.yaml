@@ -1,9 +1,11 @@
 # ──────────────────────────────────────────────────
 # Minimal GitLab Helm values for local K3d cluster
-# Disables everything non-essential to save resources
+# Uses external PostgreSQL, Redis, and MinIO (object storage)
+# deployed in the "database" namespace
 # ──────────────────────────────────────────────────
 
 global:
+  # ── External PostgreSQL ──
   psql:
     host: postgres.database.svc.cluster.local
     port: 5432
@@ -13,117 +15,71 @@ global:
       secret: gitlab-postgresql-password
       key: password
 
+  # ── External Redis ──
   redis:
-    host: redis.cache.svc.cluster.local
+    host: redis.database.svc.cluster.local
     port: 6379
     auth:
       enabled: true
       secret: gitlab-redis-password
       key: redis-password
-  hosts:
-    domain: gitlab.local
-    https: false
-  ingress:
-    configureCertmanager: false
-    class: traefik
-    tls:
-      enabled: false
-  shell:
-    port: 32022
-  edition: ce
-  kas:
+
+  # ── MinIO / Object Storage ──
+  minio:
     enabled: false
-  pages:
-    enabled: false
+
   appConfig:
-    enableUsagePing: false
     object_store:
       enabled: true
       proxy_download: true
       connection:
         secret: gitlab-object-storage
         key: connection
+    lfs:
+      bucket: gitlab-lfs
+    artifacts:
+      bucket: gitlab-artifacts
+    uploads:
+      bucket: gitlab-uploads
+    packages:
+      bucket: gitlab-packages
+    externalDiffs:
+      enabled: true
+      bucket: gitlab-mr-diffs
+    ciSecureFiles:
+      enabled: true
+      bucket: gitlab-ci-secure-files
+    dependencyProxy:
+      enabled: true
+      bucket: gitlab-dependency-proxy
 
-# ── Disable heavyweight sub-charts ──
+  # ── Registry Object Storage ──
+  registry:
+    bucket: gitlab-registry
 
-certmanager:
-  enabled: false
-
-certmanager-issuer:
-  email: info@gitlab.com
-
-nginx-ingress:
-  enabled: false
-
-prometheus:
-  install: false
-
-gitlab-runner:
-  install: false
-
-registry:
-  enabled: false
-
-# ── Core GitLab components — minimal resources ──
-
-gitlab:
-  webservice:
-    minReplicas: 1
-    maxReplicas: 1
-    resources:
-      requests:
-        cpu: 200m
-        memory: 1Gi
-      limits:
-        memory: 2.5Gi
-  sidekiq:
-    minReplicas: 1
-    maxReplicas: 1
-    resources:
-      requests:
-        cpu: 100m
-        memory: 512Mi
-      limits:
-        memory: 1.5Gi
-  gitaly:
-    resources:
-      requests:
-        cpu: 100m
-        memory: 256Mi
-      limits:
-        memory: 1Gi
-  gitlab-shell:
-    minReplicas: 1
-    maxReplicas: 1
-  kas:
-    enabled: false
   toolbox:
     resources:
       requests:
         cpu: 50m
         memory: 128Mi
 
-# ── Bundled PostgreSQL & Redis — keep but minimize ──
+certmanager-issuer:
+  email: info@gitlab.com
 
-postgresql:
-  metrics:
-    enabled: false
-  resources:
-    requests:
-      cpu: 100m
-      memory: 256Mi
-
-redis:
-  metrics:
-    enabled: false
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-
-# Disable bundled PostgreSQL and Redis when using external services.
+# ── Disable bundled PostgreSQL — using external ──
 postgresql:
   install: false
 
+# ── Disable bundled Redis — using external ──
 redis:
   install: false
+
+# ── Disable bundled MinIO — using external ──
+minio:
+  install: false
+
+# ── Registry storage backend — use external MinIO via S3 API ──
+registry:
+  storage:
+    secret: gitlab-registry-storage
+    key: config

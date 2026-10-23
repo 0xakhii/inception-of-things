@@ -12,4 +12,3 @@ echo "[BONUS] Deleting K3d cluster 'iot'..."
 k3d cluster delete iot 2>/dev/null || true
 
 echo "[BONUS] Cleanup complete."
-

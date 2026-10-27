@@ -115,6 +115,7 @@ fi
 
 if [ "${ARGOCD_READY}" = "true" ]; then
   echo "[BONUS] Argo CD is already installed and ready."
+  kubectl apply -f "${CONFS_DIR}/argocd-ingress.yaml" 2>/dev/null || true
 else
   echo "[BONUS] Installing Lightweight Argo CD..."
   kubectl apply -n "${ARGOCD_NS}" --server-side=true \
@@ -129,6 +130,9 @@ else
     --type merge -p '{"data": {"timeout.reconciliation": "10s"}}' 2>/dev/null || true
   kubectl patch configmap argocd-cmd-params-cm -n "${ARGOCD_NS}" \
     --type merge -p '{"data": {"server.insecure": "true"}}' 2>/dev/null || true
+
+  echo "[BONUS] Exposing Argo CD UI via Traefik Ingress..."
+  kubectl apply -f "${CONFS_DIR}/argocd-ingress.yaml"
 
   echo "[BONUS] Waiting for Argo CD server to be ready..."
   kubectl rollout status deployment/argocd-server -n "${ARGOCD_NS}" --timeout=300s
@@ -384,4 +388,3 @@ echo "  3. Wait ~10s for Argo CD to auto-sync"
 echo "  4. Run: kubectl get pods -n dev"
 echo ""
 echo "To clean up: bash ${SCRIPT_DIR}/cleanup.sh"
-

@@ -1,7 +1,7 @@
 #!/bin/bash
 # ──────────────────────────────────────────────────
 # Part 3 — Install all required tools
-# Docker, K3d, kubectl, Argo CD CLI
+# Docker, K3d, kubectl
 # ──────────────────────────────────────────────────
 
 set -euo pipefail
@@ -39,15 +39,6 @@ else
   echo "[P3] K3d already installed."
 fi
 
-# ── Argo CD CLI ──
-if ! command -v argocd &>/dev/null; then
-  echo "[P3] Installing Argo CD CLI..."
-  curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-  sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-  rm -f argocd-linux-amd64
-else
-  echo "[P3] Argo CD CLI already installed."
-fi
 
 echo "============================================="
 echo " [P3] All tools installed!"
@@ -55,4 +46,21 @@ echo "============================================="
 echo "  Docker:  $(docker --version 2>/dev/null || echo 'not found')"
 echo "  kubectl: $(kubectl version --client --short 2>/dev/null || kubectl version --client 2>/dev/null | head -1)"
 echo "  K3d:     $(k3d version 2>/dev/null | head -1)"
-echo "  ArgoCD:  $(argocd version --client --short 2>/dev/null || echo 'not found')"
+
+# ── Pre-pull Container Images (for faster, offline setup) ──
+echo ""
+echo "============================================="
+echo " [P3] Pre-pulling container images to host"
+echo "============================================="
+ARGOCD_VERSION="v2.14.11"
+IMAGES=(
+  "quay.io/argoproj/argocd:${ARGOCD_VERSION}"
+  "redis:7.0.15-alpine"
+  "0xakhi/portfolio:v1"
+)
+
+for img in "${IMAGES[@]}"; do
+  echo "  Pulling: ${img}"
+  docker pull "${img}" || true
+done
+echo "[P3] All images pre-pulled to host Docker daemon!"

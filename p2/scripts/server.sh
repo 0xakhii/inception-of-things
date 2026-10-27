@@ -54,6 +54,12 @@ kubectl wait --namespace kube-system \
   --selector=app.kubernetes.io/name=traefik \
   --timeout=300s
 
+# Pre-pull container images so deploys don't wait on runtime pulls
+echo "[ojamalS] Pre-pulling app images..."
+k3s ctr images pull docker.io/wil42/playground:v2
+k3s ctr images pull docker.io/library/nginx:alpine
+k3s ctr images pull docker.io/0xakhi/portfolio:latest
+
 # Deploy the 3 apps
 echo "[ojamalS] Deploying applications..."
 kubectl apply -f /vagrant/confs/

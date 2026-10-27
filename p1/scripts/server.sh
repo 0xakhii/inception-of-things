@@ -16,15 +16,6 @@ if ! command -v curl &>/dev/null; then
   apt-get install -y curl
 fi
 
-# Create 1GB swap to prevent OOM
-# if [ ! -f /swapfile ]; then
-#   echo "[ojamalS] Creating 1GB swap..."
-#   fallocate -l 1G /swapfile
-#   chmod 600 /swapfile
-#   mkswap /swapfile
-#   swapon /swapfile
-#   echo '/swapfile none swap sw 0 0' >> /etc/fstab
-# fi
 
 # Install K3s in server mode
 # --write-kubeconfig-mode 644   allows kubectl without sudo

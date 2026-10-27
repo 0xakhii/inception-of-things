@@ -1,7 +1,7 @@
 #!/bin/bash
 # ──────────────────────────────────────────────────
 # Bonus — Install all required tools
-# Docker, K3d, kubectl, Argo CD CLI, Helm
+# Docker, kubectl, K3d
 # ──────────────────────────────────────────────────
 
 set -euo pipefail
@@ -39,29 +39,33 @@ else
   echo "[BONUS] K3d already installed."
 fi
 
-# ── Argo CD CLI ──
-if ! command -v argocd &>/dev/null; then
-  echo "[BONUS] Installing Argo CD CLI..."
-  curl -sSL -o argocd-linux-amd64 https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
-  sudo install -m 555 argocd-linux-amd64 /usr/local/bin/argocd
-  rm -f argocd-linux-amd64
-else
-  echo "[BONUS] Argo CD CLI already installed."
-fi
-
-# ── Helm ──
-if ! command -v helm &>/dev/null; then
-  echo "[BONUS] Installing Helm..."
-  curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-else
-  echo "[BONUS] Helm already installed."
-fi
-
 echo "============================================="
 echo " [BONUS] All tools installed!"
 echo "============================================="
 echo "  Docker:  $(docker --version 2>/dev/null || echo 'not found')"
 echo "  kubectl: $(kubectl version --client --short 2>/dev/null || kubectl version --client 2>/dev/null | head -1)"
 echo "  K3d:     $(k3d version 2>/dev/null | head -1)"
-echo "  ArgoCD:  $(argocd version --client --short 2>/dev/null || echo 'not found')"
-echo "  Helm:    $(helm version --short 2>/dev/null || echo 'not found')"
+
+# ── Pre-pull Container Images (for faster, offline setup) ──
+echo ""
+echo "============================================="
+echo " [BONUS] Pre-pulling container images to host"
+echo "============================================="
+ARGOCD_VERSION="v2.14.11"
+IMAGES=(
+  "quay.io/argoproj/argocd:${ARGOCD_VERSION}"
+  "redis:7.0.15-alpine"
+  "gitlab/gitlab-ce:latest"
+  "0xakhi/portfolio:v1"
+)
+
+for img in "${IMAGES[@]}"; do
+  if docker image inspect "${img}" &>/dev/null; then
+    echo "  Cached on host: ${img}"
+  else
+    echo "  Pulling to host: ${img}"
+    docker pull "${img}"
+  fi
+done
+echo "[BONUS] All images verified on host Docker daemon!"
+

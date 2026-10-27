@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitlab
+  namespace: gitlab
+  labels:
+    app: gitlab
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gitlab
+  template:
+    metadata:
+      labels:
+        app: gitlab
+    spec:
+      containers:
+        - name: gitlab
+          image: gitlab/gitlab-ce:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 80
+            - name: ssh
+              containerPort: 22
+          env:
+            - name: GITLAB_OMNIBUS_CONFIG
+              value: |
+                external_url 'http://localhost:8181'
+                gitlab_rails['nginx']['listen_port'] = 80
+                gitlab_rails['initial_root_password'] = '42_Inception_SuperSecret2026!'
+
+                # Allow health probes from Kubelet without 403 Forbidden
+                gitlab_rails['monitoring_whitelist'] = ['0.0.0.0/0', '127.0.0.0/8']
+
+                # Disable the entire bundled Prometheus stack
+                prometheus_monitoring['enable'] = false
+
+                # Disable unused auxiliary features
+                registry['enable'] = false
+                mattermost['enable'] = false
+                gitlab_pages['enable'] = false
+                gitlab_kas['enable'] = false
+                letsencrypt['enable'] = false
+
+                # Minimal resource footprint
+                puma['worker_processes'] = 0
+                puma['min_threads'] = 1
+                puma['max_threads'] = 2
+                sidekiq['max_concurrency'] = 2
+                postgresql['shared_buffers'] = "256MB"
+                postgresql['max_connections'] = 100
+                postgresql['max_locks_per_transaction'] = 256
+                gitaly['ruby_max_rss'] = 100_000_000
+
+          resources:
+            requests:
+              cpu: 500m
+              memory: 2Gi
+            limits:
+              cpu: 2
+              memory: 6Gi
+
+          # --- 6. Reliable Probe using Public Endpoint ---
+          readinessProbe:
+            httpGet:
+              path: /users/sign_in                       # Public login page (no 403 whitelist issue)
+              port: 80
+            initialDelaySeconds: 90                      # Wait 90s before probing
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 60                         # Allows up to 10 min for initial DB migrations
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitlab
+  namespace: gitlab
+  labels:
+    app: gitlab
+spec:
+  type: LoadBalancer
+  selector:
+    app: gitlab
+  ports:
+    - name: http
+      port: 8181
+      targetPort: 80

@@ -6,8 +6,8 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: http://gitlab-webservice-default.gitlab.svc.cluster.local:8080/root/portfolio.git
-    targetRevision: main
+    repoURL: http://gitlab.gitlab.svc.cluster.local:8181/root/portfolio.git
+    targetRevision: HEAD
     path: .
   destination:
     server: https://kubernetes.default.svc
